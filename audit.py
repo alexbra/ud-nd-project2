@@ -3,9 +3,7 @@ import xml.etree.cElementTree as ET
 from collections import defaultdict
 import re
 import pprint
-import urllib2
 import requests
-import httplib
 
 OSMFILE = "tacoma.osm"
 street_type_re = re.compile(r'\b\S+\.?$', re.IGNORECASE)
@@ -74,10 +72,14 @@ def audit_street_type(street_types, street_name):
 
 #audit url function
 def audit_url(websites, url):
-    url = update_url(url)    
+    url = update_url(url)
+    r = requests.options(url)
+    status_code = r.status_code
     try:
-        status_code = requests.head(url).status_code #receive url status code
-        if status_code == 404 or status_code >= 500: #in case of error code add url in set
+        
+        
+        print url, status_code
+        if status_code == 404 or status_code > 500:
             websites.add(url)
     except:
         websites.add(url)
@@ -149,14 +151,9 @@ def audit(osmfile):
 
     return street_types
 
-
 street_types = audit(OSMFILE)
 
 for st_type, ways in street_types.iteritems():
     for name in ways:
         better_name = update_street_name(name)
         print name, "=>", better_name
-
-    
-
-

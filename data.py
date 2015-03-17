@@ -6,7 +6,7 @@ import pprint
 import re
 import codecs
 import json
-import urllib2
+import requests
 
 lower = re.compile(r'^([a-z]|_)*$')
 lower_colon = re.compile(r'^([a-z]|_)*:([a-z]|_)*$')
@@ -54,7 +54,6 @@ mapping = {
 #pattern for fixing address
 pattern = re.compile(r'\b(' + '|'.join(mapping.keys()) + r')\b')
 
-
 def audit_address(name):
     m = street_type_re.search(name)
     if m:
@@ -71,13 +70,13 @@ def audit_url(url):
     if not url_re.search(url):
         url = 'http://'+url_sub_pattern.sub('',url)
     try:
-        status_code = requests.head(url).status_code
-        if status_code == 404 or status_code >= 500:
+        r = requests.options(url)
+        status_code = r.status_code
+        if status_code == 404 or status_code > 500:
             url = None
     except:
         url = None
-        
-    return url            
+    return url           
         
 def shape_element(element):
     node = {}
@@ -116,7 +115,7 @@ def shape_element(element):
             elif val.attrib['k'] == 'website':
                 url = audit_url(val.attrib['v'])
                 if url!=None:
-                    node[val.attrib['k']] = url
+                    node["website"] = url
             #check amnity type node 
             elif val.attrib['k'] == 'amenity' and element.find("tag[@k='name']") is None:
                 node["name"] = val.attrib['v'].capitalize().replace('_', ' ')
@@ -151,15 +150,15 @@ def process_map(file_in, pretty = False):
 
 process_map('tacoma.osm')
 
-
+"""
 if __name__ == "__main__":
     
     from pymongo import MongoClient
-    client = MongoClient("mongodb://alexbra:avb790602@ds061548.mongolab.com:61548/datascience")
+    client = MongoClient("mongodb://<>:<>@ds061548.mongolab.com:61548/datascience")
     db = client.datascience
 
     #with open('tacoma.osm.json') as f:
     #    data = json.loads(f.read())
     #    insert_data(json_data, db)
 
-
+"""

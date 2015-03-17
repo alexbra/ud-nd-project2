@@ -1,53 +1,38 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 import pprint
-from bson.code import Code
+"""
+This file include all queries to MongoDB
+"""
 
 def get_db():
     from pymongo import MongoClient
-    client = MongoClient('mongodb://alexbra:avb790602@ds061548.mongolab.com:61548/datascience')
+    client = MongoClient('localhost:27017')
     db = client.datascience
     return db
 
 db = get_db()
 
-mapper = Code("""
-    function() {
-                  for (var key in this) { emit(key, null); }
-               }
-""")
+print db.tacomaosm.count()
 
-reducer = Code("""
-    function(key, stuff) { return null; }
-""")
+#list unique websites
+pipeline = [{"$match" : {"website": {"$exists":True}}},
+            {"$group" : {"_id":"$website",
+                         "count":{"$sum":1}}},
+            {"$sort": {"count":-1}},
+            {"$limit" : 10}
+            ]
+websites = db.tacomaosm.aggregate(pipeline)
 
-distinctThingFields = db.tacomaosm.map_reduce(mapper, reducer
-    , out = {'inline' : 1}
-    , full_response = True)
-print 'Count of all exists keys in collection - ', len(distinctThingFields["results"])
-print 'All keys in collection:'
-for i in distinctThingFields["results"]:
-    print i["_id"]
+for result in websites["result"]:
+    print result["_id"], '-', result["count"]
 
 #count ways without nodes
 query = {"type":"way", "ndrf":{"$size":0}}
 ways = db.tacomaosm.find(query)
 print '\nWays without nodes -', ways.count()
 
-
-#list unique websites
-pipeline = [{"$match" : {"url": {"$exists":True}}},
-            {"$group" : {"_id":"$url",
-                         "count":{"$sum":1}}},
-            {"$sort": {"count":-1}}
-            ]
-websites = db.tacomaosm.aggregate(pipeline)
-#print 'Websites found: ',websites["result"].count()
-for result in websites["result"]:
-    print result["_id"], '-', result["count"]
-
-
-#подсчет, сколько каждый пользователь создал устаревших тегов
+#counting of deprecated features grouped by user
 pipeline = [{"$match" : {"building": "entrance"}},
             {"$group" : {"_id":"$created.user",
                          "count":{"$sum":1}}},
@@ -56,3 +41,5 @@ pipeline = [{"$match" : {"building": "entrance"}},
 deprecated = db.tacomaosm.aggregate(pipeline)
 for result in deprecated["result"]:
     print result["_id"], '-', result["count"]
+
+
